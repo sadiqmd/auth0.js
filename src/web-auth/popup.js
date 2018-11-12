@@ -231,7 +231,18 @@ Popup.prototype.loginWithCredentials = function(options, cb) {
   options.popup = true;
 
   options = objectHelper
-    .merge(this.baseOptions, ['redirectUri', 'responseType', 'state', 'nonce'])
+    .merge(this.baseOptions, [
+      'redirectUri',
+      'responseType',
+      'state',
+      'nonce',
+      'clientID',
+      'scope',
+      'domain',
+      'audience',
+      '_csrf',
+      '_intstate'
+    ])
     .with(objectHelper.blacklist(options, ['popupHandler', 'connection']));
   options = this.transactionManager.process(options);
 
