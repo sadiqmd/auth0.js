@@ -167,9 +167,15 @@ Popup.prototype.authorize = function(options, cb) {
 
   assert.check(
     params,
-    { type: 'object', message: 'options parameter is not valid' },
     {
-      responseType: { type: 'string', message: 'responseType option is required' }
+      type: 'object',
+      message: 'options parameter is not valid'
+    },
+    {
+      responseType: {
+        type: 'string',
+        message: 'responseType option is required'
+      }
     }
   );
 
@@ -223,11 +229,36 @@ Popup.prototype.authorize = function(options, cb) {
 Popup.prototype.loginWithCredentials = function(options, cb) {
   options.realm = options.realm || options.connection;
   options.popup = true;
+
   options = objectHelper
     .merge(this.baseOptions, ['redirectUri', 'responseType', 'state', 'nonce'])
     .with(objectHelper.blacklist(options, ['popupHandler', 'connection']));
   options = this.transactionManager.process(options);
-  this.crossOriginAuthentication.login(options, cb);
+
+  if (options.popup) {
+    var popup = this.getPopupHandler(options);
+    var url = urljoin(
+      this.baseOptions.rootUrl,
+      'sso_dbconnection_popup',
+      this.baseOptions.clientID
+    );
+    var relayUrl = urljoin(this.baseOptions.rootUrl, 'relay.html');
+    var params = objectHelper.pick(options, ['clientID', 'domain']);
+    params.options = objectHelper.toSnakeCase(
+      objectHelper.pick(options, ['password', 'connection', 'state', 'scope', '_csrf', 'device'])
+    );
+    params.options.username = options.username || options.email;
+    popup.load(
+      url,
+      relayUrl,
+      {
+        params: params
+      },
+      responseHandler(cb)
+    );
+  } else {
+    this.crossOriginAuthentication.login(options, cb);
+  }
 };
 
 /**
