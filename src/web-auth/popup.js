@@ -227,38 +227,40 @@ Popup.prototype.authorize = function(options, cb) {
  * @param {credentialsCallback} cb
  */
 Popup.prototype.loginWithCredentials = function(options, cb) {
-  options.realm = options.realm || options.connection;
-  options.popup = true;
-
+  var params;
+  var popup;
+  var url;
+  var relayUrl;
+  popup = this.getPopupHandler(options);
   options = objectHelper
-    .merge(this.baseOptions, ['redirectUri', 'responseType', 'state', 'nonce'])
-    .with(objectHelper.blacklist(options, ['popupHandler', 'connection']));
-  options = this.transactionManager.process(options);
+    .merge(this.baseOptions, [
+      'clientID',
+      'scope',
+      'domain',
+      'audience',
+      '_csrf',
+      'state',
+      '_intstate',
+      'nonce'
+    ])
+    .with(objectHelper.blacklist(options, ['popupHandler']));
+  delete options.popupOptions;
+  params = objectHelper.pick(options, ['clientID', 'domain']);
+  params.options = objectHelper.toSnakeCase(
+    objectHelper.pick(options, ['password', 'connection', 'state', 'scope', '_csrf', 'device'])
+  );
+  params.options.username = options.username || options.email;
 
-  if (options.popup) {
-    var popup = this.getPopupHandler(options);
-    var url = urljoin(
-      this.baseOptions.rootUrl,
-      'sso_dbconnection_popup',
-      this.baseOptions.clientID
-    );
-    var relayUrl = urljoin(this.baseOptions.rootUrl, 'relay.html');
-    var params = objectHelper.pick(options, ['clientID', 'domain']);
-    params.options = objectHelper.toSnakeCase(
-      objectHelper.pick(options, ['password', 'connection', 'state', 'scope', '_csrf', 'device'])
-    );
-    params.options.username = options.username || options.email;
-    popup.load(
-      url,
-      relayUrl,
-      {
-        params: params
-      },
-      responseHandler(cb)
-    );
-  } else {
-    this.crossOriginAuthentication.login(options, cb);
-  }
+  url = urljoin(this.baseOptions.rootUrl, 'sso_dbconnection_popup', options.clientID);
+  relayUrl = urljoin(this.baseOptions.rootUrl, 'relay.html');
+  return popup.load(
+    url,
+    relayUrl,
+    {
+      params: params
+    },
+    responseHandler(cb)
+  );
 };
 
 /**
